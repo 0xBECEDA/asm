@@ -1,0 +1,192 @@
+#+STARTUP: showall indent hidestars
+
+* Введение
+
+C-c C-v t - TANGLE
+
+
+* Как компилить
+
+Ассемблируем наш код в объектный файл
+
+#+NAME: assembling
+#+BEGIN_SRC sh
+  as --32 morze_tree.s -o morze_tree.o
+#+END_SRC
+
+Используем линкер для создания исполняемого файла без библиотек
+
+#+NAME: linking
+#+BEGIN_SRC sh
+  ld -static                          \
+     -o morze_tree                    \
+     -L`gcc -print-file-name=`        \
+     /usr/lib/i386-linux-gnu/crt1.o   \
+     /usr/lib/i386-linux-gnu/crti.o   \
+     morze_tree.o                     \
+     /usr/lib/i386-linux-gnu/crtn.o   \
+     --start-group -lc -lgcc -lgcc_eh --end-group
+#+END_SRC
+
+Используем файл go1.sh чтобы объединить оба действия
+
+#+BEGIN_SRC sh :tangle go3.sh :noweb tangle :exports code :padline no
+  <<assembling>>
+  <<linking>>
+#+END_SRC
+
+* Структуры данных
+** Дерево кодов
+
+#+NAME: data_tree
+#+BEGIN_SRC asm
+  a:
+      .int 0
+      .ascii "a"
+      .int b
+      .ascii "_."
+      .byte 0
+  b:
+      .int a
+      .ascii "b"
+      .int c
+      .ascii "_..."
+      .byte 0
+  c:
+      .int b
+      .ascii "c"
+      .int d
+      .ascii "_._."
+      .byte 0
+  d:
+      .int c
+      .ascii "d"
+      .int e
+      .ascii "_.."
+      .byte 0
+  e:
+      .int d
+      .ascii "e"
+      .int 0
+      .ascii "."
+      .byte 0
+
+  middle:
+      .int c
+#+END_SRC
+
+** Строки
+
+#+NAME: strings
+#+BEGIN_SRC asm
+  param:
+      .string "abc"
+      .byte 0
+  morze:
+      .string "code is %s \n"
+      .byte 0
+  error:
+      .string "sorry, nothing's found \n"
+      .byte 0
+  end:
+      .string "end of string"
+      .byte 0
+#+END_SRC
+
+** Код
+
+#+BEGIN_SRC asm :tangle morze_tree.s :noweb tangle :exports code :padline no
+  .text
+  .globl main
+  .type   main, @function
+
+  <<data_tree>>
+  <<strings>>
+
+  main:
+      movl    $param, %esi
+      call    str_src
+      ret
+
+  <<outcode>>
+  <<search>>
+#+END_SRC
+
+*** Цикл движения по строке
+
+Вызывает ~search~ для каждой буквы, пока строка не кончилась
+
+#+NAME: search
+#+BEGIN_SRC asm
+  str_src: #              <-----+
+      movl    $middle, %ebx   # |     # А здесь можно комментить текстом
+      mov     (%esi), %dl     # |
+      cmpb    $0, %dl         # |
+      je  end_of_str          #-|--+
+      cmp     $0, %ebx        # |  |
+      je  end_of_str          #-|--+
+      mov     $5, %ecx        # |  |
+      call search             #-+  |
+  end_of_str: #            <-------+
+      movl $end, %edi
+      call outcode
+      ret
+#+END_SRC
+
+*** Поиск морзе-кода буквы
+
+#+NAME: search
+#+BEGIN_SRC asm
+  search:
+      mov     (%ebx), %ebp
+      mov     %ebp, %ebx
+      add     $4,%ebp
+      mov     (%ebp), %al
+      cmp     %al, %dl
+      je  add1
+      jnbe bigger
+      jnge search
+      loop search
+      movl    $error, %edi
+      call outcode
+      jmp search_return
+  add1:
+      add     $5, %ebp
+      mov     %ebp, %eax
+      movl    $morze, %edi
+      call    outcode
+      add $1, %esi
+      jmp str_src
+  bigger:
+      add     $5, %ebx
+      jmp     search
+  search_return:
+      ret
+
+#+END_SRC
+
+*** Функция вывода в консоль
+
+Принимает:
+- форматную строку в регистре %edi
+- параметр для вывода в регистре %eax
+
+Сохраняет и восстанавливает %exc
+
+#+NAME: outcode
+#+BEGIN_SRC asm
+  outcode:
+      push %ecx
+      push %eax
+      push %edi
+      call printf
+      pop %edi
+      pop %eax
+      pop %ecx
+      ret
+#+END_SRC
+
+* Как отлаживать
+** В gdb
+** ObjDump
+* Заключение
