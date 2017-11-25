@@ -11,15 +11,19 @@ hello:
 bye:
     .int hi
     .string "Bye!"
+    .int bye1
     .byte 0
 hi:
+    .int 0
     .string "Hi!"
-
-
+bye1:
+    movl $bye1, %edi
+    jmp print_success
+    ret
 param:
-    .string "Bye!"
+    .string "Fffff!"
 error:
-    .string  "end \n"
+    .string  "error! \n"
 success:
     .string "success! \n"
 
@@ -29,7 +33,8 @@ main:
     mov $0, %ebp
     call  cmp_str1
     cmp $0, %eax
-    je  print_success
+    # je  prepare
+    je print_success
 print_error:
     movl $error, %edi
     push %edi
@@ -43,6 +48,7 @@ print_success:
     pop %edi
 main_return:
     ret
+
 adress:
     mov %esi, %ecx
     add $4, %esi
@@ -65,6 +71,11 @@ cmp_str2:
 search:
     cmp %dl, %al
     je inc_str
+    movl $param, %edi
+    xor %ebp, %ebp
+    mov (%ecx), %ecx
+    cmp $0, %ecx
+    je out_error
     xor %ebp, %ebp
     mov (%ecx), %esi
     jmp cmp_str1
