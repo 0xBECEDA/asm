@@ -5,23 +5,37 @@
 
 hello:
     .int bye
-    .string "Hello!"
+    .string "Hello! \n"
+    .int hello1
     .byte 0
 
 bye:
     .int hi
-    .string "Bye!"
+    .string "Bye! \n"
     .int bye1
     .byte 0
 hi:
     .int 0
-    .string "Hi!"
+    .string "Hi! \n"
+    .int hi1
+    .byte 0
 bye1:
-    movl $bye1, %edi
+    movl $bye, %edi
+    add $4, %edi
+    jmp print_success
+    ret
+hello1:
+    movl $hello, %edi
+    add $4, %edi
+    jmp print_success
+    ret
+hi1:
+    movl $hi, %edi
+    add $4, %edi
     jmp print_success
     ret
 param:
-    .string "Fffff!"
+    .string "Hi! \n"
 error:
     .string  "error! \n"
 success:
@@ -33,8 +47,7 @@ main:
     mov $0, %ebp
     call  cmp_str1
     cmp $0, %eax
-    # je  prepare
-    je print_success
+    je  prepare
 print_error:
     movl $error, %edi
     push %edi
@@ -42,13 +55,15 @@ print_error:
     pop %edi
     jmp main_return
 print_success:
-    movl $success, %edi
     push %edi
     call printf
     pop %edi
 main_return:
     ret
 
+prepare:
+    add $1, %esi
+    jmp *(%esi)
 adress:
     mov %esi, %ecx
     add $4, %esi
@@ -77,7 +92,7 @@ search:
     cmp $0, %ecx
     je out_error
     xor %ebp, %ebp
-    mov (%ecx), %esi
+    mov %ecx, %esi
     jmp cmp_str1
 inc_str:
     inc  %esi
