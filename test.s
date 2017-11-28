@@ -2,44 +2,40 @@
 	.text
 	.globl	main
 	.type	main, @function
+param:
+    .string "Bye! \n"
 
 hello:
     .int bye
     .string "Hello! \n"
-    .int hello1
+    movl $hello, %edi
+    add $4, %edi
+    jmp print_success
     .byte 0
 
 bye:
     .int hi
     .string "Bye! \n"
-    .int bye1
+    movl $bye, %edi
+    add $4, %edi
+    jmp print_success
     .byte 0
 hi:
     .int 0
     .string "Hi! \n"
-    .int hi1
-    .byte 0
-bye1:
-    movl $bye, %edi
-    add $4, %edi
-    jmp print_success
-    ret
-hello1:
-    movl $hello, %edi
-    add $4, %edi
-    jmp print_success
-    ret
-hi1:
     movl $hi, %edi
     add $4, %edi
     jmp print_success
-    ret
-param:
-    .string "Hi! \n"
+    .byte 0
+
+print_success:
+    push %edi
+    call printf
+    pop %edi
+    jmp main_return
+
 error:
     .string  "error! \n"
-success:
-    .string "success! \n"
 
 main:
     movl $param, %edi
@@ -53,17 +49,12 @@ print_error:
     push %edi
     call printf
     pop %edi
-    jmp main_return
-print_success:
-    push %edi
-    call printf
-    pop %edi
 main_return:
     ret
 
 prepare:
     add $1, %esi
-    jmp *(%esi)
+    jmp *%esi
 adress:
     mov %esi, %ecx
     add $4, %esi
@@ -99,7 +90,6 @@ inc_str:
     inc  %edi
     jmp cmp_str1
 out_success:
-    movl $success, %edi
     xor %eax, %eax
     ret
 out_error:
