@@ -2,12 +2,17 @@
 	.text
 	.globl	main
 	.type	main, @function
-param:
-    .string "Bye! \n"
+my_stack:
+    .rept 20
+    .byte 2
+    .endr
+my_stack_bp:
+    .byte 1
+    .int 0
 
 hello:
     .int bye
-    .string "Hello! \n"
+    .string "Hello!"
     movl $hello, %edi
     add $4, %edi
     jmp print_success
@@ -15,30 +20,41 @@ hello:
 
 bye:
     .int hi
-    .string "Bye! \n"
+    .string "Bye!"
     movl $bye, %edi
     add $4, %edi
-    jmp print_success
+    call print_success
+    pop %eax
+    ret
     .byte 0
 hi:
     .int 0
-    .string "Hi! \n"
+    .string "Hi!"
     movl $hi, %edi
     add $4, %edi
     jmp print_success
     .byte 0
-
+space:
+    .byte 0xA
+    .byte 0
 print_success:
     push %edi
     call printf
     pop %edi
-    jmp main_return
+    movl $space, %edi
+    push %edi
+    call puts
+    pop %edi
+    ret
 
 error:
     .string  "error! \n"
 
 main:
-    movl $param, %edi
+    movl $future_param, %edi
+    push %edi
+    call gets
+    pop %edi
     movl $hello, %esi
     mov $0, %ebp
     call  cmp_str1
@@ -48,18 +64,19 @@ print_error:
     movl $error, %edi
     push %edi
     call printf
-    pop %edi
-main_return:
-    ret
+    pop  %edi
+    jmp main
 
 prepare:
     add $1, %esi
-    jmp *%esi
+    call *%esi
+    jmp main
 adress:
     mov %esi, %ecx
     add $4, %esi
     inc %ebp
     jmp cmp_str2
+
 cmp_str1:
     xor %ebx, %ebx
     mov (%edi), %al
@@ -77,12 +94,12 @@ cmp_str2:
 search:
     cmp %dl, %al
     je inc_str
-    movl $param, %edi
+    movl $future_param, %edi
     xor %ebp, %ebp
     mov (%ecx), %ecx
     cmp $0, %ecx
     je out_error
-    xor %ebp, %ebp
+    xor %ebx, %ebx
     mov %ecx, %esi
     jmp cmp_str1
 inc_str:
@@ -96,3 +113,9 @@ out_error:
     xor %eax, %eax
     mov $2, %eax
     ret
+
+    .data
+future_param:
+    .rept 20
+    .byte 0
+    .endr
